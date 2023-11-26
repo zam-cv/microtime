@@ -1,12 +1,16 @@
-use crate::solver::Solver;
-use crate::utils::driver::{ArcDriver, PinAsync};
+use crate::{
+    client::Client,
+    network::Network,
+    solver::Solver,
+    utils::driver::{ArcDriver, PinAsync},
+};
 use anyhow::Result;
 use esp_idf_svc::hal::{
     gpio::Pins,
     i2c::{config::Config, I2cDriver, I2C0},
     prelude::Hertz,
 };
-use std::{sync::Arc, thread};
+use std::{sync::{Arc, Mutex}, thread};
 
 pub mod ds18b20;
 pub mod max3010x;
@@ -46,12 +50,17 @@ macro_rules! pin_threads {
     };
 }
 
-pub fn init(pins: Pins, i2c0: I2C0) -> Result<()> {
+pub fn init(
+    pins: Pins,
+    i2c0: I2C0,
+    network: Arc<Network>,
+    client: Arc<Mutex<Option<Client>>>,
+) -> Result<()> {
     let config = Config::new().baudrate(Hertz(400_000));
     let ds18b20_pin = PinAsync(pins.gpio3.into());
     let i2c = I2cDriver::new(i2c0, pins.gpio6, pins.gpio7, &config)?;
     let driver = ArcDriver::new(i2c);
-    let solver = Arc::new(Solver::new()?);
+    let solver = Arc::new(Solver::new(client, network)?);
 
     i2c_threads!([max3010x, mpu6050], driver.clone(), solver.clone());
     pin_threads!([(ds18b20, ds18b20_pin)], driver.clone(), solver.clone());

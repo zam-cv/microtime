@@ -1,14 +1,14 @@
-use serde::{Deserialize, Serialize};
 use mongodb::bson::oid::ObjectId;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Headers {
-    pub timestamp: u64,
+    pub timestamp: i64,
 }
 
 impl Headers {
     pub fn get_timestamp(&self) -> i64 {
-        (self.timestamp as i64) + (chrono::Local::now().offset().local_minus_utc() as i64)
+        self.timestamp + chrono::Local::now().offset().local_minus_utc() as i64
     }
 }
 
@@ -17,7 +17,7 @@ pub struct Message<P> {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     id: Option<ObjectId>,
     pub headers: Headers,
-    pub payload: P
+    pub payload: P,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

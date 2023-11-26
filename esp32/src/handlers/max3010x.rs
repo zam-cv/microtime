@@ -1,6 +1,6 @@
 use crate::{
     drivers::max3010x::{Config, MAX3010x as Sensor},
-    solver::{Driver, Headers, Message, Solver, Update},
+    solver::{Message, Solver},
 };
 use anyhow::Result;
 use embedded_hal::blocking::i2c::{Read, Write};
@@ -36,16 +36,7 @@ where
 
         if let Ok((red, ir)) = red.and_then(|red| ir.map(|ir| (red, ir))) {
             info!("red: {}, ir: {}", red, ir);
-
-            solver.send(
-                Driver::Max3010x,
-                Update::Socket(Message {
-                    headers: Headers {
-                        timestamp: chrono::Local::now().timestamp() as u64,
-                    },
-                    payload: Max3010x { red, ir },
-                }),
-            )?;
+            solver.send_to_database(Message::new(Max3010x { red, ir }))?;
         } else {
             info!("Error reading sensor");
         }

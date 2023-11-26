@@ -1,6 +1,6 @@
 use crate::{
     drivers::ds18b20::Ds18b20 as Sensor,
-    solver::{Driver, Headers, Message, Solver, Update},
+    solver::{Message, Solver},
 };
 use anyhow::Result;
 use esp_idf_svc::hal::gpio::AnyIOPin;
@@ -21,14 +21,6 @@ pub fn ds18b20(pin: AnyIOPin, solver: Arc<Solver>) -> Result<()> {
         temperature = ds18b20.get_temp()?;
         log::info!("temperature: {}", temperature);
 
-        solver.send(
-            Driver::Ds18b20,
-            Update::Socket(Message {
-                headers: Headers {
-                    timestamp: chrono::Local::now().timestamp() as u64,
-                },
-                payload: Ds18b20 { temperature },
-            }),
-        )?;
+        solver.send_to_database(Message::new(Ds18b20 { temperature }))?;
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     drivers::mpu6050::Mpu6050 as Sensor,
-    solver::{Driver, Headers, Message, Solver, Update},
+    solver::{Message, Solver},
 };
 use anyhow::Result;
 use embedded_hal::blocking::i2c::{Write, WriteRead};
@@ -51,16 +51,7 @@ where
             accel.and_then(|accel| rotation.map(|rotation| (accel, rotation)))
         {
             info!("accel: {:?}, rotation: {:?}", accel, rotation);
-
-            solver.send(
-                Driver::Mpu6050,
-                Update::Socket(Message {
-                    headers: Headers {
-                        timestamp: chrono::Local::now().timestamp() as u64,
-                    },
-                    payload: Mpu6050 { accel, rotation },
-                })
-            )?;
+            solver.send_to_database(Message::new(Mpu6050 { accel, rotation }))?;
         } else {
             info!("Error reading sensor");
         }

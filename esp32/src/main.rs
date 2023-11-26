@@ -10,6 +10,7 @@ mod handlers;
 mod network;
 mod solver;
 mod utils;
+mod tasks;
 
 pub const CLIENT_ID: &str = "EQUIPO-2";
 pub const HOST: &str = "192.168.167.102";
@@ -22,15 +23,13 @@ pub const SSID: &str = "Red";
 pub const PASSWORD: &str = "12345678";
 
 fn app() -> Result<()> {
+    std::env::set_var("TZ", "CST6CDT,M4.1.0,M10.5.0");
     let peripherals = Peripherals::take()?;
     let sysloop = EspSystemEventLoop::take()?;
     let nvs = nvs::EspDefaultNvsPartition::take()?;
 
-    #[allow(unused_mut, unused)]
-    let mut wifi = network::connect(SSID, PASSWORD, peripherals.modem, sysloop, nvs)?;
-    utils::sntp::init()?;
-
-    handlers::init(peripherals.pins, peripherals.i2c0)
+    let (network, client) = tasks::init(peripherals.modem, sysloop, nvs)?;
+    handlers::init(peripherals.pins, peripherals.i2c0, network, client)
 }
 
 fn main() {

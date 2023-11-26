@@ -1,8 +1,15 @@
+use crate::{
+    solver::{DRIVERS, RED_UPDATES},
+    CLIENT_ID, HOST, PORT,
+};
 use anyhow::Result;
 use esp_idf_svc::mqtt::client::*;
 use esp_idf_sys::*;
 use log::*;
-use std::{sync::Mutex, thread};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+};
 
 pub struct MessageData<'a> {
     pub data: &'a [u8],
@@ -16,6 +23,22 @@ impl<'b, 'a: 'b> MessageData<'a> {
 
 pub struct Client {
     client: Mutex<EspMqttClient<'static, ConnState<MessageImpl, EspError>>>,
+}
+
+pub fn create_client(client: Arc<Mutex<Option<Client>>>) -> Result<()> {
+    if let Ok(mut client) = client.lock() {
+        let current = Client::new(CLIENT_ID, HOST, PORT, |_, _| {})?;
+
+        for update in RED_UPDATES {
+            for driver in DRIVERS {
+                current.subscribe(&format!("{}/{}", update, driver))?
+            }
+        }
+
+        *client = Some(current);
+    }
+
+    Ok(())
 }
 
 impl Client {

@@ -6,10 +6,9 @@ pub fn init() -> Result<()> {
     log::info!("SNTP initialized, waiting for status!");
 
     while sntp.get_sync_status() != SyncStatus::Completed {
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        std::thread::sleep(std::time::Duration::from_millis(200));
     }
 
-    std::env::set_var("TZ", "CST6CDT,M4.1.0,M10.5.0");
     log::info!("SNTP status received!");
 
     Ok(())
