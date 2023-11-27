@@ -41,28 +41,30 @@ pub async fn handle(
         let driver = routes[1];
 
         if let Some(tx) = txs.get(&driver.to_string()) {
-            println!("{}", payload);
-
             match update {
-                DATABASE => match driver {
-                    DS18B20 => {
-                        let message = serde_json::from_str::<Message<Ds18b20>>(&payload)?;
-                        let timestamp = message.headers.get_timestamp();
-                        ds18b20.insert_one(message, None).await?;
+                DATABASE => {
+                    println!("DATABASE => {}", payload);
+                    match driver {
+                        DS18B20 => {
+                            let message = serde_json::from_str::<Message<Ds18b20>>(&payload)?;
+                            let timestamp = message.headers.get_timestamp();
+                            ds18b20.insert_one(message, None).await?;
+                        }
+                        MAX3010X => {
+                            let message = serde_json::from_str::<Message<Max3010x>>(&payload)?;
+                            let timestamp = message.headers.get_timestamp();
+                            max3010x.insert_one(message, None).await?;
+                        }
+                        MPU6050 => {
+                            let message = serde_json::from_str::<Message<Mpu6050>>(&payload)?;
+                            let timestamp = message.headers.get_timestamp();
+                            mpu6050.insert_one(message, None).await?;
+                        }
+                        _ => {}
                     }
-                    MAX3010X => {
-                        let message = serde_json::from_str::<Message<Max3010x>>(&payload)?;
-                        let timestamp = message.headers.get_timestamp();
-                        max3010x.insert_one(message, None).await?;
-                    }
-                    MPU6050 => {
-                        let message = serde_json::from_str::<Message<Mpu6050>>(&payload)?;
-                        let timestamp = message.headers.get_timestamp();
-                        mpu6050.insert_one(message, None).await?;
-                    }
-                    _ => {}
-                },
+                }
                 SOCKET => {
+                    println!("SOCKET => {}", payload);
                     let _ = tx.send(payload);
                 }
                 _ => {}
