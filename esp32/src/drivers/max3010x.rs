@@ -78,7 +78,7 @@ pub struct Sense {
     green: [u32; STORAGE_SIZE],
 }
 
-pub struct MAX3010x<I2C>
+pub struct Max3010x<I2C>
 where
     I2C: Write + Read,
 {
@@ -109,7 +109,7 @@ impl Default for Config {
     }
 }
 
-impl<I2C> MAX3010x<I2C>
+impl<I2C> Max3010x<I2C>
 where
     I2C: Write + Read,
     <I2C as Write>::Error: Error + Send + Sync + Sized + 'static,

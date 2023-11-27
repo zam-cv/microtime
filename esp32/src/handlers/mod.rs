@@ -10,7 +10,7 @@ use esp_idf_svc::hal::{
     i2c::{config::Config, I2cDriver, I2C0},
     prelude::Hertz,
 };
-use std::{sync::{Arc, Mutex}, thread};
+use std::{sync::{Arc, Mutex}, thread, time::Duration};
 
 pub mod ds18b20;
 pub mod max3010x;
@@ -30,6 +30,7 @@ macro_rules! i2c_threads {
             thread::spawn(move || {
                 while let Err(e) = i(d.clone(), Arc::clone(&s)) {
                     println!("Error: {:?}", e);
+                    thread::sleep(Duration::from_secs(5));
                 }
             });
         }
@@ -44,6 +45,7 @@ macro_rules! pin_threads {
             thread::spawn(move || {
                 while let Err(e) = i(pin.pin(), Arc::clone(&s)) {
                     println!("Error: {:?}", e);
+                    thread::sleep(Duration::from_secs(5));
                 }
             });
         }
@@ -67,6 +69,7 @@ pub fn init(
 
     while let Err(e) = ssd1306(driver.clone()) {
         println!("Error: {:?}", e);
+        thread::sleep(Duration::from_secs(5));
     }
 
     Ok(())

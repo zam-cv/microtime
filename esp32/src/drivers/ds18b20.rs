@@ -104,6 +104,9 @@ pub struct Ds18b20 {
     raw_temperature: i16,
 }
 
+unsafe impl Send for Ds18b20 {}
+unsafe impl Sync for Ds18b20 {}
+
 impl Ds18b20 {
     pub fn new(pin: AnyIOPin) -> Result<Self> {
         unsafe {

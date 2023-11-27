@@ -11,6 +11,7 @@ mod network;
 mod solver;
 mod utils;
 mod tasks;
+mod images;
 
 pub const CLIENT_ID: &str = "EQUIPO-2";
 pub const HOST: &str = "192.168.167.102";

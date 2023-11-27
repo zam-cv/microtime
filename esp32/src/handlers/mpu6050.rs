@@ -1,12 +1,18 @@
 use crate::{
     drivers::mpu6050::Mpu6050 as Sensor,
     solver::{Message, Solver},
+    utils::check,
 };
 use anyhow::Result;
 use embedded_hal::blocking::i2c::{Write, WriteRead};
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::{error::Error, sync::Arc, thread, time::Duration};
+use std::{
+    error::Error,
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct Accel {
@@ -17,9 +23,9 @@ pub struct Accel {
 
 #[derive(Serialize, Deserialize)]
 pub struct Rotation {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
+    pub yaw: f32,
+    pub patch: f32,
+    pub roll: f32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -28,34 +34,74 @@ pub struct Mpu6050 {
     pub rotation: Rotation,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Test {
-    pub test: String,
-}
-
 pub fn mpu6050<I2C>(i2c: I2C, solver: Arc<Solver>) -> Result<()>
 where
-    I2C: WriteRead + Write,
+    I2C: WriteRead + Write + Send + Sync + Clone + 'static,
     <I2C as WriteRead>::Error: Error + Send + Sync + Sized + 'static,
     <I2C as Write>::Error: Error + Send + Sync + Sized + 'static,
 {
-    let mut mpu6050 = Sensor::new(i2c)?;
-    let mut accel;
-    let mut rotation;
+    let mpu6050 = Arc::new(Mutex::new(Sensor::new(i2c.clone())?));
 
-    loop {
-        accel = mpu6050.get_accel();
-        rotation = mpu6050.get_rotation();
+    let m = mpu6050.clone();
+    let s = solver.clone();
+    thread::spawn(move || {
+        let check = check::Check::new(20);
+        let mpu6050 = Arc::clone(&m);
+        let solver = Arc::clone(&s);
+        let mut accel;
+        let mut rotation;
 
-        if let Ok((accel, rotation)) =
-            accel.and_then(|accel| rotation.map(|rotation| (accel, rotation)))
-        {
-            info!("accel: {:?}, rotation: {:?}", accel, rotation);
-            solver.send_to_database(Message::new(Mpu6050 { accel, rotation }))?;
-        } else {
-            info!("Error reading sensor");
+        loop {
+            if let Ok(mut mpu6050) = mpu6050.lock() {
+                accel = mpu6050.get_accel();
+                rotation = mpu6050.get_rotation();
+
+                if let Ok((accel, rotation)) = accel.and_then(|a| rotation.map(|r| (a, r))) {
+                    info!("SOCKET => accel: {:?}, rotation: {:?}", accel, rotation);
+                    let _ = solver.send_to_socket(Message::new(Mpu6050 { accel, rotation }));
+                } else {
+                    info!("Error reading sensor");
+                    check.error();
+
+                    if check.is_limit() {
+                        thread::sleep(Duration::from_secs(5));
+                        if let Ok(sensor) = Sensor::new(i2c.clone()) {
+                            *mpu6050 = sensor;
+                        } else {
+                            info!("Error creating sensor");
+                        }
+                    }
+                }
+            }
+
+            thread::sleep(Duration::from_secs(1));
         }
+    });
 
-        thread::sleep(Duration::from_secs(1));
-    }
+    let m = mpu6050.clone();
+    let s = solver.clone();
+    thread::spawn(move || {
+        let mpu6050 = Arc::clone(&m);
+        let solver = Arc::clone(&s);
+        let mut accel;
+        let mut rotation;
+
+        loop {
+            if let Ok(mut mpu6050) = mpu6050.lock() {
+                accel = mpu6050.get_accel();
+                rotation = mpu6050.get_rotation();
+
+                if let Ok((accel, rotation)) = accel.and_then(|a| rotation.map(|r| (a, r))) {
+                    info!("DATABASE => accel: {:?}, rotation: {:?}", accel, rotation);
+                    let _ = solver.send_to_database(Message::new(Mpu6050 { accel, rotation }));
+                } else {
+                    info!("Error reading sensor");
+                }
+            }
+
+            thread::sleep(Duration::from_secs(3));
+        }
+    });
+
+    Ok(())
 }

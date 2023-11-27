@@ -28,6 +28,12 @@ impl<'d> ArcDriver<'d> {
     }
 }
 
+impl<'d> Clone for ArcDriver<'d> {
+    fn clone(&self) -> Self {
+        Self(Arc::clone(&self.0))
+    }
+}
+
 impl<'d> Write for ArcDriver<'d> {
     type Error = std::io::Error;
 

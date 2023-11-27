@@ -18,9 +18,9 @@ impl Debug for Accel {
 impl Debug for Rotation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Rotation")
-            .field("x", &self.x)
-            .field("y", &self.y)
-            .field("z", &self.z)
+            .field("x", &self.yaw)
+            .field("y", &self.patch)
+            .field("z", &self.roll)
             .finish()
     }
 }
@@ -78,9 +78,9 @@ where
                     let ypr = YawPitchRoll::from(quaternion);
 
                     return Ok(Rotation {
-                        x: ypr.yaw,
-                        y: ypr.pitch,
-                        z: ypr.roll,
+                        yaw: ypr.yaw,
+                        patch: ypr.pitch,
+                        roll: ypr.roll,
                     });
                 }
             }
