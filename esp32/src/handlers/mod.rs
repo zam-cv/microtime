@@ -6,7 +6,7 @@ use crate::{
 };
 use anyhow::Result;
 use esp_idf_svc::hal::{
-    gpio::Pins,
+    gpio::{Pins, PinDriver},
     i2c::{config::Config, I2cDriver, I2C0},
     prelude::Hertz,
 };
@@ -63,6 +63,10 @@ pub fn init(
     let i2c = I2cDriver::new(i2c0, pins.gpio6, pins.gpio7, &config)?;
     let driver = ArcDriver::new(i2c);
     let solver = Arc::new(Solver::new(client, network)?);
+
+    let vibrator_pin = pins.gpio21;
+    let mut vibrator = PinDriver::input_output(vibrator_pin)?;
+    vibrator.set_low()?;
 
     i2c_threads!([max3010x, mpu6050], driver.clone(), solver.clone());
     pin_threads!([(ds18b20, ds18b20_pin)], driver.clone(), solver.clone());
