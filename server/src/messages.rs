@@ -40,9 +40,9 @@ pub struct Accel {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Rotation {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
+    pub yaw: f32,
+    pub patch: f32,
+    pub roll: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -14,7 +14,7 @@ mod tasks;
 mod images;
 
 pub const CLIENT_ID: &str = "EQUIPO-2";
-pub const HOST: &str = "192.168.167.102";
+pub const HOST: &str = "192.168.42.102";
 pub const PORT: &str = "1883";
 
 pub const HOSTPOT_SSID: &str = "MicroTime";

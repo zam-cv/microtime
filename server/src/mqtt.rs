@@ -75,7 +75,11 @@ pub async fn handle(
     Ok(())
 }
 
-pub async fn init(db: Database) -> Result<Arc<HashMap<String, Sender<String>>>> {
+pub async fn init(
+    ds18b20: Collection<Message<Ds18b20>>,
+    max3010x: Collection<Message<Max3010x>>,
+    mpu6050: Collection<Message<Mpu6050>>,
+) -> Result<Arc<HashMap<String, Sender<String>>>> {
     let mut mqttoptions = MqttOptions::new(CLIENT_ID, HOST, PORT.parse::<u16>()?);
     mqttoptions.set_keep_alive(Duration::from_secs(5));
 
@@ -97,10 +101,6 @@ pub async fn init(db: Database) -> Result<Arc<HashMap<String, Sender<String>>>> 
 
     let txs = Arc::new(txs);
     let txs_clone = Arc::clone(&txs);
-
-    let ds18b20 = db.collection(DS18B20);
-    let max3010x = db.collection(MAX3010X);
-    let mpu6050 = db.collection(MPU6050);
 
     task::spawn(async move {
         while let Ok(event) = eventloop.poll().await {

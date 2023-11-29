@@ -1,11 +1,13 @@
-import { CHART_OPTIONS } from "../constants";
-import { Line } from "react-chartjs-2";
+import { Options } from "../constants";
+import { Line, Bubble } from "react-chartjs-2";
 
 export default function GraphicView({
+  options,
   values,
 }: {
+  options?: Options;
   values: {
-    labels: string[];
+    labels?: any[];
     datasets: {
       data: number[];
       borderColor: string;
@@ -13,10 +15,28 @@ export default function GraphicView({
   };
 }) {
   return (
-    <div className="bg-blue-950 rounded-lg col-span-3 p-3">
-      <div className="h-full">
-        <Line data={values} options={CHART_OPTIONS} height={"50%"} />
-      </div>
+    <div className="h-full">
+      <Line data={values} options={options} height={"50%"} />
+    </div>
+  );
+}
+
+export function GraphicViewBubble({
+  options,
+  values,
+}: {
+  options?: Options;
+  values: {
+    labels?: any[];
+    datasets: {
+      data: number[];
+      borderColor: string;
+    }[];
+  };
+}) {
+  return (
+    <div className="h-full">
+      <Bubble data={values} options={options} height={"50%"} />
     </div>
   );
 }

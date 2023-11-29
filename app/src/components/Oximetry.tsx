@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { faker } from "@faker-js/faker";
 import GraphicView from "./GraphicView";
+import { CHART_OPTIONS } from "../constants";
+import { Link } from "react-router-dom";
 
 const labels = ["1", "2", "3", "4", "5", "6", "7"];
+const options = JSON.parse(JSON.stringify(CHART_OPTIONS));
+options.plugins.title.text = "Oximetria";
 
 export const oximetry = {
   labels,
@@ -35,5 +39,11 @@ export default function Oximetry() {
     }, 200);
   }, []);
 
-  return <GraphicView values={oximetryValues} />;
+  return (
+    <div className="bg-blue-950 rounded-lg col-span-3 pt-1 p-3">
+      <Link to="/oximetry">
+        <GraphicView options={options} values={oximetryValues} />
+      </Link>
+    </div>
+  );
 }

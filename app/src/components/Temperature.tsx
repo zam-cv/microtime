@@ -1,17 +1,18 @@
 import { useState, useEffect } from "react";
 import { SOCKET_URL, DS18B20 } from "../constants";
+import { Link } from "react-router-dom";
 
 interface Headers {
-  timestamp: number,
+  timestamp: number;
 }
 
 interface Payload {
-  temperature: number
+  temperature: number;
 }
 
 interface Response {
-  headers: Headers,
-  payload: Payload
+  headers: Headers;
+  payload: Payload;
 }
 
 export default function Temperature() {
@@ -30,11 +31,16 @@ export default function Temperature() {
   }, [socket]);
 
   return (
-    <div className=" bg-blue-950 rounded-lg flex items-center justify-center">
-      <div className=" flex gap-1">
-        <p className="text-white text-4xl font-normal">{temperature}</p>
-        <p className="text-white font-bold text-sm">°C</p>
-      </div>
+    <div className="bg-blue-950 rounded-lg">
+      <Link
+        to="/temperature"
+        className="flex items-center justify-center w-full h-full"
+      >
+        <div className="flex gap-1">
+          <p className="text-white text-4xl font-normal">{temperature}</p>
+          <p className="text-white font-bold text-sm">°C</p>
+        </div>
+      </Link>
     </div>
   );
 }

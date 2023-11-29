@@ -19,6 +19,7 @@ pub struct Max3010x {
     pub ir: u32,
 }
 
+const FIR_COEFFS: [u16; 12] = [172, 321, 579, 927, 1360, 1858, 2390, 2916, 3391, 3768, 4012, 4096];
 
 struct HeartRateMonitor {
     ir_ac_max: i16,
@@ -53,11 +54,11 @@ impl HeartRateMonitor {
         }
     }
 
-    fn check_for_beat(&mut self, sample: i32) -> bool {
+    fn check_for_beat(&mut self, sample: u32) -> bool {
         let mut beat_detected = false;
         self.ir_ac_signal_previous = self.ir_ac_signal_current;
         self.ir_average_estimated = self.average_dc_estimator(sample as i16);
-        self.ir_ac_signal_current = self.low_pass_fir_filter(sample - self.ir_average_estimated as i32);
+        self.ir_ac_signal_current = self.low_pass_fir_filter(sample as i32 - self.ir_average_estimated as i32);
 
         if self.ir_ac_signal_previous < 0 && self.ir_ac_signal_current >= 0 {
             self.ir_ac_max = self.ir_ac_signal_max;
@@ -93,6 +94,7 @@ impl HeartRateMonitor {
         self.ir_avg_reg += (((x as i32) << 15) - self.ir_avg_reg) >> 4;
         (self.ir_avg_reg >> 15) as i16
     }
+    
 
     fn low_pass_fir_filter(&mut self, din: i32) -> i16 {
         self.cbuf[self.offset] = din as i16;
@@ -135,36 +137,39 @@ where
         let mut red;
         let mut ir;
         let timestamp = chrono::Local::now().timestamp();
-        let rates: [i32; 4];
+        let mut rates: [u32; 4] = [0; 4];
         let mut last_beat: i32 = 0;
-        let mut beats_per_minute: f32 = 0.0;
-        let mut rate_spot: i32 = 0;
-        let mut beat_avg: i32 = 0;
+        let mut beats_per_minute: u32 = 0;
+        let mut rate_spot: u32 = 0;
+        let mut beat_avg: u32 = 0;
+        let mut heart_rate_monitor = HeartRateMonitor::new();
 
         loop {
             if let Ok(mut max3010x) = m.lock() {
                 red = max3010x.get_red();
                 ir = max3010x.get_ir();
 
-                if check_for_beat(ir) == true{
-                    let delta: i32 = chrono::Local::now().timestamp() - last_beat;
-                    last_beat = chrono::Local::now().timestamp();
-                    beats_per_minute = 60 / (delta as f32 / 1000.0);
-
-                    if(beats_per_minute < 255 && beats_per_minute > 20){
-                        rates[rate_spot+=1] = beats_per_minute as i32;
-                        rate_spot %= 4;
-
-                        beat_avg = 0;
-
-                        for i in 0..4{
-                            beat_avg += rates[i];
-                            beat_avg /= 4;
+                if let Ok((red, ir)) = red.and_then(|red| ir.map(|ir| (red, ir))) {
+                    if heart_rate_monitor.check_for_beat(ir) == true{
+                        let delta: u32 = chrono::Local::now().timestamp() as u32 - last_beat as u32;
+                        last_beat = chrono::Local::now().timestamp() as i32;
+                        beats_per_minute = 60 / (delta / 1000);
+    
+                        if beats_per_minute < 255 && beats_per_minute > 20 {
+                            rate_spot = rate_spot + 1;
+                            rates[rate_spot as usize] = beats_per_minute;
+                            rate_spot %= 4;
+    
+                            beat_avg = 0;
+    
+                            for i in 0..4 {
+                                beat_avg += rates[i];
+                                beat_avg /= 4;
+                            }
                         }
                     }
-                }
 
-                if let Ok((red, ir)) = red.and_then(|red| ir.map(|ir| (red, ir))) {
+                    info!("BEATS_PER_MINUTE => {}", beats_per_minute);
                     info!("SOCKET => red: {}, ir: {}", red, ir);
                     let _ = solver.send_to_socket(Message::new(Max3010x { red, ir }));
                 } else {
@@ -172,7 +177,7 @@ where
                 }
             }
 
-            thread::sleep(Duration::from_millis(500));
+            thread::sleep(Duration::from_secs(4));
         }
     });
 
