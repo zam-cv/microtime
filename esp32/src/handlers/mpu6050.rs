@@ -63,6 +63,7 @@ where
                     let distance_x: f32 = accel.x as f32 * interval * interval / 2.0;
                     total_distance += distance_x;
 
+                    info!("DISTANCE => {}", total_distance);
                     info!("SOCKET => accel: {:?}, rotation: {:?}", accel, rotation);
                     let _ = solver.send_to_socket(Message::new(Mpu6050 { accel, rotation }));
                 } else {

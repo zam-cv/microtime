@@ -29,8 +29,8 @@ struct HeartRateMonitor {
     ir_ac_signal_min: i16,
     ir_ac_signal_max: i16,
     ir_average_estimated: i16,
-    positive_edge: bool,
-    negative_edge: bool,
+    positive_edge: i16,
+    negative_edge: i16,
     ir_avg_reg: i32,
     cbuf: [i16; 32],
     offset: usize,
@@ -46,26 +46,26 @@ impl HeartRateMonitor {
             ir_ac_signal_min: 0,
             ir_ac_signal_max: 0,
             ir_average_estimated: 0,
-            positive_edge: false,
-            negative_edge: false,
+            positive_edge: 0,
+            negative_edge: 0,
             ir_avg_reg: 0,
             cbuf: [0; 32],
             offset: 0,
         }
     }
 
-    fn check_for_beat(&mut self, sample: u32) -> bool {
+    fn check_for_beat(&mut self, sample: i32) -> bool {
         let mut beat_detected = false;
         self.ir_ac_signal_previous = self.ir_ac_signal_current;
-        self.ir_average_estimated = self.average_dc_estimator(sample as i16);
-        self.ir_ac_signal_current = self.low_pass_fir_filter(sample as i32 - self.ir_average_estimated as i32);
+        self.ir_average_estimated = self.average_dc_estimator(sample as u16);
+        self.ir_ac_signal_current = self.low_pass_fir_filter((sample - self.ir_average_estimated as i32) as i16);
 
-        if self.ir_ac_signal_previous < 0 && self.ir_ac_signal_current >= 0 {
+        if (self.ir_ac_signal_previous < 0) & (self.ir_ac_signal_current >= 0) {
             self.ir_ac_max = self.ir_ac_signal_max;
             self.ir_ac_min = self.ir_ac_signal_min;
 
-            self.positive_edge = true;
-            self.negative_edge = false;
+            self.positive_edge = 1;
+            self.negative_edge = 0;
             self.ir_ac_signal_max = 0;
 
             if (self.ir_ac_max - self.ir_ac_min) > 20 && (self.ir_ac_max - self.ir_ac_min) < 1000 {
@@ -73,40 +73,43 @@ impl HeartRateMonitor {
             }
         }
 
-        if self.ir_ac_signal_previous > 0 && self.ir_ac_signal_current <= 0 {
-            self.positive_edge = false;
-            self.negative_edge = true;
+        if (self.ir_ac_signal_previous > 0) & (self.ir_ac_signal_current <= 0) {
+            self.positive_edge = 0;
+            self.negative_edge = 1;
             self.ir_ac_signal_min = 0;
         }
 
-        if self.positive_edge && self.ir_ac_signal_current > self.ir_ac_signal_previous {
+        if self.positive_edge == 1 && self.ir_ac_signal_current > self.ir_ac_signal_previous {
             self.ir_ac_signal_max = self.ir_ac_signal_current;
         }
 
-        if self.negative_edge && self.ir_ac_signal_current < self.ir_ac_signal_previous {
+        if self.negative_edge == 1 && self.ir_ac_signal_current < self.ir_ac_signal_previous {
             self.ir_ac_signal_min = self.ir_ac_signal_current;
         }
 
         beat_detected
     }
 
-    fn average_dc_estimator(&mut self, x: i16) -> i16 {
+    fn average_dc_estimator(&mut self, x: u16) -> i16 {
         self.ir_avg_reg += (((x as i32) << 15) - self.ir_avg_reg) >> 4;
         (self.ir_avg_reg >> 15) as i16
     }
     
 
-    fn low_pass_fir_filter(&mut self, din: i32) -> i16 {
-        self.cbuf[self.offset] = din as i16;
+    fn low_pass_fir_filter(&mut self, din: i16) -> i16 {
+        self.cbuf[self.offset] = din;
+        let mut z = HeartRateMonitor::mul16(FIR_COEFFS[11] as i16, self.cbuf[(self.offset - 11) & 0x1F]);
 
-        let mut z = HeartRateMonitor::mul16(FIR_COEFFS[11] as i16, self.cbuf[(self.offset + 11) % 32]);
         for i in 0..11 {
-            z += HeartRateMonitor::mul16(FIR_COEFFS[i] as i16, self.cbuf[(self.offset + i) % 32] + self.cbuf[(self.offset + 22 - i) % 32]);
+            z += HeartRateMonitor::mul16(FIR_COEFFS[i] as i16, self.cbuf[(self.offset - i) & 0x1F] + self.cbuf[(self.offset - 22 + i) & 0x1F]);
         }
 
-        self.offset = (self.offset + 1) % 32;
+        self.offset += 1;
+        self.offset %= 32;
+
         (z >> 15) as i16
     }
+
 
     fn mul16(x: i16, y: i16) -> i32 {
         x as i32 * y as i32
@@ -137,11 +140,11 @@ where
         let mut red;
         let mut ir;
         let timestamp = chrono::Local::now().timestamp();
-        let mut rates: [u32; 4] = [0; 4];
+        let mut rates: [i64; 4] = [0; 4];
         let mut last_beat: i32 = 0;
-        let mut beats_per_minute: u32 = 0;
+        let mut beats_per_minute: i64 = 0;
         let mut rate_spot: u32 = 0;
-        let mut beat_avg: u32 = 0;
+        let mut beat_avg: i64 = 0;
         let mut heart_rate_monitor = HeartRateMonitor::new();
 
         loop {
@@ -150,9 +153,20 @@ where
                 ir = max3010x.get_ir();
 
                 if let Ok((red, ir)) = red.and_then(|red| ir.map(|ir| (red, ir))) {
-                    if heart_rate_monitor.check_for_beat(ir) == true{
-                        let delta: u32 = chrono::Local::now().timestamp() as u32 - last_beat as u32;
-                        last_beat = chrono::Local::now().timestamp() as i32;
+                    if heart_rate_monitor.check_for_beat(ir as i32) == true {
+                        // let delta: i64 = chrono::Local::now().timestamp() - last_beat as i64;
+                        // last_beat = chrono::Local::now().timestamp() as i32;
+
+                        // millis
+                        let delta: i64 = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .as_millis() as i64 - last_beat as i64;
+                        // millis
+                        last_beat = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .as_millis() as i32;
                         beats_per_minute = 60 / (delta / 1000);
     
                         if beats_per_minute < 255 && beats_per_minute > 20 {
