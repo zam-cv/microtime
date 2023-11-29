@@ -97,11 +97,12 @@ impl HeartRateMonitor {
     
 
     fn low_pass_fir_filter(&mut self, din: i16) -> i16 {
+        let buf_size = self.cbuf.len();
         self.cbuf[self.offset] = din;
-        let mut z = HeartRateMonitor::mul16(FIR_COEFFS[11] as i16, self.cbuf[(self.offset - 11) & 0x1F]);
+        let mut z = HeartRateMonitor::mul16(FIR_COEFFS[11] as i16, self.cbuf[(self.offset + buf_size - 11) & 0x1F]);
 
         for i in 0..11 {
-            z += HeartRateMonitor::mul16(FIR_COEFFS[i] as i16, self.cbuf[(self.offset - i) & 0x1F] + self.cbuf[(self.offset - 22 + i) & 0x1F]);
+            z += HeartRateMonitor::mul16(FIR_COEFFS[i] as i16, self.cbuf[(self.offset - i) & 0x1F] + self.cbuf[(self.offset + buf_size- 22 + i) & 0x1F]);
         }
 
         self.offset += 1;
