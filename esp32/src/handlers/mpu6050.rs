@@ -50,21 +50,19 @@ where
         let mpu6050 = Arc::clone(&m);
         let solver = Arc::clone(&s);
         let mut accel;
-        let mut accel_x;
         let mut rotation;
         let mut total_distance: f32 = 0.0;
 
         loop {
             if let Ok(mut mpu6050) = mpu6050.lock() {
-                accel_x = mpu6050.get_accel_x();
                 accel = mpu6050.get_accel();
                 rotation = mpu6050.get_rotation();
-                let interval: f32 = 0.08;
-                let distance_x: f32 = accel_x.unwrap() as f32 * interval * interval / 2.0;
-                total_distance += distanceX;
-
 
                 if let Ok((accel, rotation)) = accel.and_then(|a| rotation.map(|r| (a, r))) {
+                    let interval: f32 = 0.08;
+                    let distance_x: f32 = accel.x as f32 * interval * interval / 2.0;
+                    total_distance += distance_x;
+
                     info!("SOCKET => accel: {:?}, rotation: {:?}", accel, rotation);
                     let _ = solver.send_to_socket(Message::new(Mpu6050 { accel, rotation }));
                 } else {
