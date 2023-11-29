@@ -2,10 +2,10 @@ import "./App.css";
 import { initChart } from "./utils/chart";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
-import HeartRate from "./pages/calendars/HeartRate";
-import Oximetry from "./pages/calendars/Oximetry";
-import Steps from "./pages/calendars/Steps";
-import Temperature from "./pages/calendars/Temperature";
+import HeartRate from "./pages/details/HeartRate";
+import Oximetry from "./pages/details/Oximetry";
+import Steps from "./pages/details/Steps";
+import Temperature from "./pages/details/Temperature";
 
 initChart();
 
