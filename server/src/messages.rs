@@ -21,6 +21,12 @@ pub struct Message<P> {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Report {
+    pub status: String,
+    pub description: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Ds18b20 {
     pub temperature: f32,
 }

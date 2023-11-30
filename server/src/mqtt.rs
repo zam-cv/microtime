@@ -1,6 +1,6 @@
-use crate::messages::{Ds18b20, Max3010x, Message, Mpu6050};
+use crate::messages::{Ds18b20, Max3010x, Message, Mpu6050, Report};
 use anyhow::Result;
-use mongodb::{Collection, Database};
+use mongodb::Collection;
 use rumqttc::v5::{
     mqttbytes::{v5::Publish, QoS},
     AsyncClient, Event, Incoming, MqttOptions,
@@ -21,9 +21,10 @@ pub const DATABASE: &str = "database";
 pub const DS18B20: &str = "ds18b20";
 pub const MAX3010X: &str = "max3010x";
 pub const MPU6050: &str = "mpu6050";
+pub const REPORT: &str = "report";
 
 pub const RED_UPDATES: [&str; 2] = [SOCKET, DATABASE];
-pub const DRIVERS: [&str; 3] = [DS18B20, MAX3010X, MPU6050];
+pub const PAYLOADS: [&str; 4] = [DS18B20, MAX3010X, MPU6050, REPORT];
 
 pub async fn handle(
     publish: &Publish,
@@ -31,6 +32,7 @@ pub async fn handle(
     ds18b20: &Collection<Message<Ds18b20>>,
     max3010x: &Collection<Message<Max3010x>>,
     mpu6050: &Collection<Message<Mpu6050>>,
+    report: &Collection<Message<Report>>,
 ) -> Result<()> {
     let topic = std::str::from_utf8(&publish.topic)?;
     let payload = std::str::from_utf8(&publish.payload)?.to_string();
@@ -47,18 +49,19 @@ pub async fn handle(
                     match driver {
                         DS18B20 => {
                             let message = serde_json::from_str::<Message<Ds18b20>>(&payload)?;
-                            let timestamp = message.headers.get_timestamp();
                             ds18b20.insert_one(message, None).await?;
                         }
                         MAX3010X => {
                             let message = serde_json::from_str::<Message<Max3010x>>(&payload)?;
-                            let timestamp = message.headers.get_timestamp();
                             max3010x.insert_one(message, None).await?;
                         }
                         MPU6050 => {
                             let message = serde_json::from_str::<Message<Mpu6050>>(&payload)?;
-                            let timestamp = message.headers.get_timestamp();
                             mpu6050.insert_one(message, None).await?;
+                        }
+                        REPORT => {
+                            let message = serde_json::from_str::<Message<Report>>(&payload)?;
+                            report.insert_one(message, None).await?;
                         }
                         _ => {}
                     }
@@ -79,6 +82,7 @@ pub async fn init(
     ds18b20: Collection<Message<Ds18b20>>,
     max3010x: Collection<Message<Max3010x>>,
     mpu6050: Collection<Message<Mpu6050>>,
+    report: Collection<Message<Report>>,
 ) -> Result<Arc<HashMap<String, Sender<String>>>> {
     let mut mqttoptions = MqttOptions::new(CLIENT_ID, HOST, PORT.parse::<u16>()?);
     mqttoptions.set_keep_alive(Duration::from_secs(5));
@@ -87,14 +91,14 @@ pub async fn init(
     let mut txs = HashMap::new();
 
     for &update in RED_UPDATES.iter() {
-        for &driver in DRIVERS.iter() {
+        for &driver in PAYLOADS.iter() {
             client
                 .subscribe(&format!("{}/{}", update, driver), QoS::AtMostOnce)
                 .await?;
         }
     }
 
-    for &driver in DRIVERS.iter() {
+    for &driver in PAYLOADS.iter() {
         let (tx, _) = broadcast::channel(10);
         txs.insert(driver.to_string(), tx);
     }
@@ -111,6 +115,7 @@ pub async fn init(
                     &ds18b20,
                     &max3010x,
                     &mpu6050,
+                    &report,
                 )
                 .await
                 {

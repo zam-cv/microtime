@@ -1,5 +1,5 @@
 use crate::{
-    solver::{DRIVERS, RED_UPDATES},
+    solver::{PAYLOADS, RED_UPDATES},
     CLIENT_ID, HOST, PORT,
 };
 use anyhow::Result;
@@ -30,7 +30,7 @@ pub fn create_client(client: Arc<Mutex<Option<Client>>>) -> Result<()> {
         let current = Client::new(CLIENT_ID, HOST, PORT, |_, _| {})?;
 
         for update in RED_UPDATES {
-            for driver in DRIVERS {
+            for driver in PAYLOADS {
                 current.subscribe(&format!("{}/{}", update, driver))?
             }
         }

@@ -6,10 +6,10 @@ import { Link } from "react-router-dom";
 
 const labels = ["1", "2", "3", "4", "5", "6", "7"];
 const options = JSON.parse(JSON.stringify(CHART_OPTIONS));
-options.plugins.title.text = "Frecuencia cardiaca";
+options.plugins.title.text = "Frecuencia Cardiaca";
 
 export const heartRate = {
-  title: "Frecuencia cardiaca",
+  title: "Frecuencia Cardiaca",
   labels,
   datasets: [
     {

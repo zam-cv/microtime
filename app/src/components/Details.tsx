@@ -5,7 +5,7 @@ import moment from "moment/moment";
 import "moment/locale/es";
 
 const UNIT: any = {
-  day: ["00:00", "06:00", "12:00", "18:00", "24:00"],
+  day: ["06:00", "12:00", "18:00", "24:00"],
   week: ["L", "M", "M", "J", "V", "S", "D"],
   month: ["S1", "S2", "S3", "S4"],
   year: ["E1", "E2", "E3", "E4"],
@@ -38,6 +38,12 @@ export function Button({
   );
 }
 
+interface Data {
+  id: number;
+  group: number;
+  average: number;
+}
+
 export function Calendar({
   set,
   data,
@@ -47,7 +53,7 @@ export function Calendar({
   stepSize,
 }: {
   set: (type: string) => void;
-  data: number[];
+  data: Data[];
   unit: string;
   min: number;
   max: number;
@@ -58,7 +64,7 @@ export function Calendar({
   options.scales.y.ticks.stepSize = stepSize;
 
   const [values, setValues] = useState({
-    labels: UNIT.day,
+    labels: UNIT[unit],
     datasets: [
       {
         data: [0],
@@ -69,10 +75,23 @@ export function Calendar({
 
   useEffect(() => {
     setValues({
-      labels: UNIT[unit],
+      labels: data.map((item) => {
+        switch (unit) {
+          case "day":
+            return moment.unix(item.group).format("HH:mm");
+          case "week":
+            return moment.unix(item.group).format("ddd");
+          case "month":
+            return moment.unix(item.group).format("MMM DD");
+          case "year":
+            return moment.unix(item.group).format("YYYY MMM");
+          default:
+            return "";
+        }
+      }),
       datasets: [
         {
-          data,
+          data: data.map((item) => item.average),
           borderColor: "rgb(0, 200, 255)",
         },
       ],
