@@ -99,7 +99,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            power_level: 0x01,
+            power_level: 0xC1,
             sample_average: 4,
             led_mode: 3,
             sample_rate: 400,

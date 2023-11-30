@@ -30,8 +30,9 @@ pub struct Rotation {
 
 #[derive(Serialize, Deserialize)]
 pub struct Mpu6050 {
-    pub accel: Accel,
-    pub rotation: Rotation,
+    // pub accel: Accel,
+    // pub rotation: Rotation,
+    pub steps: u32
 }
 
 pub fn mpu6050<I2C>(i2c: I2C, solver: Arc<Solver>) -> Result<()>
@@ -64,7 +65,10 @@ where
 
                     info!("DISTANCE => {}", total_distance);
                     info!("SOCKET => accel: {:?}, rotation: {:?}", accel, rotation);
-                    let _ = solver.send_to_socket(Message::new(Mpu6050 { accel, rotation }));
+
+                    let _ = solver.send_to_socket(Message::new(Mpu6050 { 
+                        steps: 0
+                     }));
                 } else {
                     info!("Error reading sensor");
                     check.error();
@@ -99,7 +103,9 @@ where
 
                 if let Ok((accel, rotation)) = accel.and_then(|a| rotation.map(|r| (a, r))) {
                     info!("DATABASE => accel: {:?}, rotation: {:?}", accel, rotation);
-                    let _ = solver.send_to_database(Message::new(Mpu6050 { accel, rotation }));
+                    let _ = solver.send_to_database(Message::new(Mpu6050 { 
+                        steps: 0
+                     }));
                 } else {
                     info!("Error reading sensor");
                 }
