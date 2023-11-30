@@ -11,6 +11,8 @@ use std::{
     time::Duration,
 };
 
+const FACTOR: f32 = 1.15;
+
 #[derive(Serialize, Deserialize)]
 pub struct Ds18b20 {
     pub temperature: f32,
@@ -27,7 +29,8 @@ pub fn ds18b20(pin: AnyIOPin, solver: Arc<Solver>) -> Result<()> {
 
         loop {
             if let Ok(mut ds18b20) = ds18b20.lock() {
-                if let Ok(temperature) = ds18b20.get_temp() {
+                if let Ok(mut temperature) = ds18b20.get_temp() {
+                    temperature *= FACTOR;
                     log::info!("SOCKET => temperature: {}", temperature);
                     let _ = solver.send_to_socket(Message::new(Ds18b20 { temperature }));
                 } else {
@@ -47,7 +50,8 @@ pub fn ds18b20(pin: AnyIOPin, solver: Arc<Solver>) -> Result<()> {
 
         loop {
             if let Ok(mut ds18b20) = ds18b20.lock() {
-                if let Ok(temperature) = ds18b20.get_temp() {
+                if let Ok(mut temperature) = ds18b20.get_temp() {
+                    temperature *= FACTOR;
                     log::info!("DATABASE => temperature: {}", temperature);
                     let _ = solver.send_to_database(Message::new(Ds18b20 { temperature }));
                 } else {

@@ -74,6 +74,6 @@ where
             .flush()
             .map_err(|e| anyhow::anyhow!("Failed to flush display: {:?}", e))?;
 
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(Duration::from_millis(500));
     }
 }

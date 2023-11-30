@@ -1,25 +1,10 @@
-use crate::mqtt::{DRIVERS, DS18B20, MAX3010X, MPU6050};
 use actix::{prelude::*, Actor, AsyncContext, StreamHandler};
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use anyhow::Result;
-use lazy_static::lazy_static;
-use std::{
-    collections::{HashMap, HashSet},
-    sync::{atomic::AtomicUsize, Arc},
-};
+use std::{collections::HashMap, sync::Arc};
 use tokio::{sync::broadcast::Sender, task};
 use uuid::Uuid;
-
-lazy_static! {
-    static ref DRIVERS_SET: HashSet<String> = {
-        let mut set = HashSet::new();
-        set.insert(DS18B20.to_string());
-        set.insert(MAX3010X.to_string());
-        set.insert(MPU6050.to_string());
-        set
-    };
-}
 
 #[derive(Message)]
 #[rtype(result = "()")]

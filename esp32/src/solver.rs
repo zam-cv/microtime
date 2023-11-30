@@ -1,6 +1,6 @@
 use crate::{
     client::Client,
-    handlers::{ds18b20::Ds18b20, max3010x::Max3010x, mpu6050::Mpu6050},
+    handlers::{ds18b20::Ds18b20, max3010x::Max3010x, mpu6050::Mpu6050, button::Report},
     network::Network,
 };
 use anyhow::Result;
@@ -9,15 +9,56 @@ use std::sync::{Arc, Mutex};
 
 pub const SOCKET: &str = "socket";
 pub const DATABASE: &str = "database";
-
-pub const DS18B20: &str = "ds18b20";
-pub const MAX3010X: &str = "max3010x";
-pub const MPU6050: &str = "mpu6050";
-
 pub const RED_UPDATES: [&str; 2] = [SOCKET, DATABASE];
-pub const DRIVERS: [&str; 3] = [DS18B20, MAX3010X, MPU6050];
 
 const LIMIT: usize = 3000;
+
+macro_rules! count_idents {
+    ($($idents:ident),*) => {
+        {
+            #[allow(dead_code, non_camel_case_types)]
+            enum Idents { $($idents,)* __CountIdentsLast }
+            const COUNT: usize = Idents::__CountIdentsLast as usize;
+            COUNT
+        }
+    }
+}
+
+macro_rules! set_payloads {
+    ($($payload:ident),*) => {
+        #[derive(Serialize, Deserialize)]
+        #[serde(untagged)]
+        pub enum Payload {
+            $(
+                $payload($payload),
+            )*
+        }
+
+        $(
+            impl Into<Payload> for $payload {
+                fn into(self) -> Payload {
+                    Payload::$payload(self)
+                }
+            }
+        )*
+
+        impl Payload {
+            pub fn get_topic(&self) -> String {
+                match self {
+                    $(
+                        Payload::$payload(_) => stringify!($payload).to_lowercase(),
+                    )*
+                }
+            }
+        }
+
+        // $(
+        //     pub const $payload: &str = stringify!($payload);
+        // )*
+
+        pub const PAYLOADS: [&str; count_idents!($($payload),*)] = [$(stringify!($payload)),*];
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Headers {
@@ -27,15 +68,7 @@ pub struct Headers {
 #[derive(Serialize, Deserialize)]
 pub struct Message {
     pub headers: Headers,
-    pub payload: Driver,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum Driver {
-    Ds18b20(Ds18b20),
-    Max3010x(Max3010x),
-    Mpu6050(Mpu6050),
+    pub payload: Payload,
 }
 
 pub struct Solver {
@@ -47,41 +80,15 @@ pub struct Solver {
 unsafe impl Send for Solver {}
 unsafe impl Sync for Solver {}
 
-impl Into<Driver> for Mpu6050 {
-    fn into(self) -> Driver {
-        Driver::Mpu6050(self)
-    }
-}
-
-impl Into<Driver> for Max3010x {
-    fn into(self) -> Driver {
-        Driver::Max3010x(self)
-    }
-}
-
-impl Into<Driver> for Ds18b20 {
-    fn into(self) -> Driver {
-        Driver::Ds18b20(self)
-    }
-}
+set_payloads!(Ds18b20, Max3010x, Mpu6050, Report);
 
 impl Message {
-    pub fn new<P: Into<Driver>>(payload: P) -> Self {
+    pub fn new<P: Into<Payload>>(payload: P) -> Self {
         Self {
             headers: Headers {
                 timestamp: chrono::Local::now().timestamp(),
             },
             payload: payload.into(),
-        }
-    }
-}
-
-impl Driver {
-    pub fn get_topic(&self) -> &'static str {
-        match self {
-            Driver::Ds18b20(_) => DS18B20,
-            Driver::Max3010x(_) => MAX3010X,
-            Driver::Mpu6050(_) => MPU6050,
         }
     }
 }

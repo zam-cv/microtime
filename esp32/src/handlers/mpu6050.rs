@@ -6,7 +6,6 @@ use crate::{
 use anyhow::Result;
 use embedded_hal::blocking::i2c::{Write, WriteRead};
 use log::info;
-use mpu6050_dmp::accel;
 use serde::{Deserialize, Serialize};
 use std::{
     error::Error,
