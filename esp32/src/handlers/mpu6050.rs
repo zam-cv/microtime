@@ -52,18 +52,31 @@ where
         let mut accel;
         let mut rotation;
         let mut total_distance: f32 = 0.0;
+        let mut pasos: f32 = 0.0;
 
         loop {
             if let Ok(mut mpu6050) = mpu6050.lock() {
                 accel = mpu6050.get_accel();
                 rotation = mpu6050.get_rotation();
+                let mut accx = accel.x;
 
                 if let Ok((accel, rotation)) = accel.and_then(|a| rotation.map(|r| (a, r))) {
+                    if accel.x > 100 | accel.x < -100{
+                        accx = accel.x;
+                    } else {
+                        accx = 0;
+                    }
                     let interval: f32 = 0.08;
-                    let distance_x: f32 = accel.x as f32 * interval * interval / 2.0;
+                    let distance_x: f32 = accx as f32 * interval * interval / 2.0;
                     total_distance += distance_x;
+                    pasos = pasos + total_distance / 0.7;
+                    
 
-                    info!("DISTANCE => {}", total_distance);
+
+
+
+
+                    info!("pasos => {}", pasos);
                     info!("SOCKET => accel: {:?}, rotation: {:?}", accel, rotation);
                     let _ = solver.send_to_socket(Message::new(Mpu6050 { accel, rotation }));
                 } else {
