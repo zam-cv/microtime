@@ -46,8 +46,6 @@ impl HeartRateMonitor {
         self.total_ir += ir;
 
         let average_ir = self.total_ir as f32 / self.readings.len() as f32;
-
-        // Actualización de la detección de dedo
         self.finger_detected = self.is_finger_detected(ir, red, average_ir);
 
         if !self.finger_detected {
@@ -71,8 +69,7 @@ impl HeartRateMonitor {
     }
 
     fn filter_ir_signal(&self, ir: u32) -> u32 {
-        // Implementar un filtro de señal aquí, como un filtro de paso bajo o de media móvil
-        ir // Placeholder
+        ir
     }
 
     fn is_peak(&self, current: u32, previous: u32) -> bool {
@@ -80,23 +77,19 @@ impl HeartRateMonitor {
     }
 
     fn is_finger_detected(&self, ir: u32, red: u32, average_ir: f32) -> bool {
-        // Implementar lógica para detectar si un dedo está presente
-        // Esto puede incluir comprobar si 'ir' y 'red' están dentro de un rango esperado y si hay suficiente variabilidad
         ir > MIN_IR_VALUE && red > MIN_RED_VALUE && (ir as f32 - average_ir).abs() > VARIABILITY_THRESHOLD
     }
 }
 
 const WINDOW_SIZE: usize = 10;
-const PEAK_THRESHOLD: u32 = 50000; // Ajustar según los datos
-const MIN_IR_VALUE: u32 = 20000; // Ajustar según los datos
-const MIN_RED_VALUE: u32 = 20000; // Ajustar según los datos
-const VARIABILITY_THRESHOLD: f32 = 1000.0; // Ajustar según los datos
-const MIN_INTERVAL: f32 = 0.5; // 120 BPM
+const PEAK_THRESHOLD: u32 = 50000;
+const MIN_IR_VALUE: u32 = 20000;
+const MIN_RED_VALUE: u32 = 20000;
+const VARIABILITY_THRESHOLD: f32 = 1000.0; 
+const MIN_INTERVAL: f32 = 0.5;
 
 #[derive(Serialize, Deserialize)]
 pub struct Max3010x {
-    // pub red: u32,
-    // pub ir: u32,
     pub heart_rate: u32
 }
 
@@ -129,13 +122,11 @@ where
                 if let Ok((red, ir)) = red.and_then(|red| ir.map(|ir| (red, ir))) {
                     monitor.update(ir, red);
 
-                    // Obtener y usar el valor BPM actual
-                    let bpm = monitor.get_bpm();
-                    println!("BPM: {}", bpm);
-
+                    let bpm = (monitor.get_bpm() - 85.0).abs();
+                    info!("BPM: {}", bpm);
                     info!("SOCKET => red: {}, ir: {}", red, ir);
                     let _ = solver.send_to_socket(Message::new(Max3010x { 
-                        heart_rate: 0
+                        heart_rate: bpm as u32
                      }));
                 } else {
                     info!("Error reading sensor");
@@ -150,6 +141,7 @@ where
     let s = solver.clone();
     let handle2 = thread::spawn(move || {
         let solver = Arc::clone(&s);
+        let mut monitor = HeartRateMonitor::new();
         let mut red;
         let mut ir;
 
@@ -159,9 +151,11 @@ where
                 ir = max3010x.get_ir();
 
                 if let Ok((red, ir)) = red.and_then(|red| ir.map(|ir| (red, ir))) {
+                    monitor.update(ir, red);
+                    let bpm = (monitor.get_bpm() - 85.0).abs();
                     info!("DATABASE => red: {}, ir: {}", red, ir);
                     let _ = solver.send_to_database(Message::new(Max3010x { 
-                        heart_rate: 0
+                        heart_rate: bpm as u32
                      }));
                 } else {
                     info!("Error reading sensor");

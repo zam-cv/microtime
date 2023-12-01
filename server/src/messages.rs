@@ -31,10 +31,11 @@ pub struct Ds18b20 {
     pub temperature: f32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct Max3010x {
-    pub red: u32,
-    pub ir: u32,
+    // pub red: u32,
+    // pub ir: u32,
+    pub heart_rate: u32
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -51,8 +52,7 @@ pub struct Rotation {
     pub roll: f32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct Mpu6050 {
-    pub accel: Accel,
-    pub rotation: Rotation,
+    pub steps: u32
 }

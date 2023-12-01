@@ -5,6 +5,12 @@ use mongodb::{
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, error::Error, time::Duration};
 
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Request {
+    pub unit: String,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Value {
     pub _id: f32,

@@ -1,12 +1,43 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { SOCKET_URL, STEPS } from "../constants";
 
-export default function Steps({
-  steps,
-  calories,
-}: {
+interface Headers {
+  timestamp: number;
+}
+
+interface Payload {
   steps: number;
-  calories: number;
-}) {
+}
+
+interface Response {
+  headers: Headers;
+  payload: Payload;
+}
+
+export default function Steps() {
+  let socket: WebSocket = new WebSocket(SOCKET_URL);
+  let [steps, setSteps] = useState(0);
+  let [calories, setCalories] = useState(0);
+
+  useEffect(() => {
+    socket.onopen = function (_) {
+      socket.send("mpu6050");
+    };
+
+    socket.onmessage = function (event) {
+      let response: Response = JSON.parse(event.data);
+      setSteps(Math.trunc(response.payload.steps));
+      setCalories(
+        Math.round(0.0175 * 70 * Math.trunc(response.payload.steps) * 0.022)
+      );
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    setCalories(steps);
+  }, [steps]);
+
   return (
     <div className="bg-blue-950 rounded-lg col-span-2">
       <Link

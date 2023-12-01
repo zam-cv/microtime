@@ -6,14 +6,17 @@ import { Link } from "react-router-dom";
 
 const labels = ["1", "2", "3", "4", "5", "6", "7"];
 const options = JSON.parse(JSON.stringify(CHART_OPTIONS));
-options.plugins.title.text = "Frecuencia Cardiaca";
+options.plugins.title.text = "Pulsos por Minuto";
+options.scales.y.min = 0;
+options.scales.y.max = 150;
+options.scales.y.ticks.stepSize = 130;
 
 export const heartRate = {
-  title: "Frecuencia Cardiaca",
+  title: "Pulsos por Minuto",
   labels,
   datasets: [
     {
-      data: labels.map(() => faker.number.int({ min: -220, max: 220 })),
+      data: labels.map(() => faker.number.int({ min: 0, max: 150 })),
       borderColor: "rgb(255, 99, 132)",
     },
   ],
@@ -31,7 +34,7 @@ export default function HeartRate() {
             {
               ...prev.datasets[0],
               data: prev.datasets[0].data.map(() =>
-                faker.number.int({ min: -220, max: 220 })
+                faker.number.int({ min: 60, max: 100 })
               ),
             },
           ],

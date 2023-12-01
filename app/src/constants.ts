@@ -6,6 +6,7 @@ export const SOCKET_URL = `ws://${SOCKET_HOST}:${SOCKET_PORT}/ws/`;
 export const SERVER_URL = `http://${SERVER_HOST}:${SERVER_PORT}`;
 export const DS18B20 = "ds18b20";
 export const REPORT = "report";
+export const STEPS = "steps";
 
 export const CHART_OPTIONS = {
   responsive: true,

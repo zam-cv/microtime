@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import Header from "../../components/Header";
 import {
@@ -7,10 +7,40 @@ import {
   Normality,
   Title,
 } from "../../components/Details";
+import { SERVER_URL } from "../../constants";
+import { getInfo, Data } from "../../utils/values";
+import axios from "axios";
 
 export default function HeartRate() {
   let [select, setSelect] = useState("day");
-  let [values, setValues] = useState<number[]>([]);
+  let [min, setMin] = useState(0);
+  let [max, setMax] = useState(0);
+  let [average, setAverage] = useState(0);
+  let [noise, setNoise] = useState(0);
+  let [normality, setNormality] = useState(0);
+  let [values, setValues] = useState<Data[]>([]);
+
+  useEffect(() => {
+    axios.post(`${SERVER_URL}/steps`, { unit: select }).then((res: any) => {
+      console.log(res.data);
+      setValues(res.data);
+    });
+  }, [select]);
+
+  useEffect(() => {
+    axios
+      .post(`${SERVER_URL}/steps`, { unit: "day" })
+      .then(({ data }: { data: Data[] }) => {
+        console.log(data);
+        let { min, max, average, noise, normality } = getInfo(data);
+
+        setNoise(Math.floor(noise));
+        setMin(Math.floor(min.average));
+        setMax(Math.floor(max.average));
+        setAverage(Math.floor(average));
+        setNormality(normality);
+      });
+  }, [select]);
 
   return (
     <Layout>
@@ -18,16 +48,16 @@ export default function HeartRate() {
         <Header />
         <div className="col-span-3 grid grid-rows-[1fr_5fr_5fr_2fr] gap-5">
           <Title value="Pasos" />
-          {/* <Calendar
+          <Calendar
             set={setSelect}
             unit={select}
             data={values}
-            min={15}
-            max={30}
-            stepSize={5}
-          /> */}
-          <Information min={15} max={30} average={25} noise={0.5} />
-          <Normality value={40} />
+            min={0}
+            max={5000}
+            stepSize={400}
+          />
+          <Information min={min} max={max} average={average} noise={noise} />
+          <Normality value={normality} />
         </div>
       </div>
     </Layout>

@@ -13,7 +13,7 @@ export default function Home() {
         <User name="Rafael Soto" />
         <HeartRate />
         <Oximetry />
-        <Steps steps={10} calories={10} />
+        <Steps />
         <Temperature />
         <Report />
       </div>

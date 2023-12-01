@@ -50,6 +50,8 @@ async fn main() -> Result<()> {
             .app_data(web::Data::new(report.clone()))
             .service(services::temperature::get_values)
             .service(services::report::get_values)
+            .service(services::steps::get_values)
+            .service(services::heart_rate::get_values)
             .route("/ws/", web::get().to(socket::route))
     })
     .bind((HOST, PORT.parse::<u16>()?))?

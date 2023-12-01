@@ -8,14 +8,8 @@ import {
   Normality,
   Title,
 } from "../../components/Details";
-import { getInfo } from "../../utils/values";
+import { getInfo, Data } from "../../utils/values";
 import axios from "axios";
-
-interface Data {
-  id: number;
-  group: number;
-  average: number;
-}
 
 export default function Temperature() {
   let [select, setSelect] = useState("day");
